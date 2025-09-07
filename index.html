@@ -2,23 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Awe Constellation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Living Awe</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Awe Constellation</h1>
-    <div id="slideshow">
-      <div id="reflection"></div>
-      <button id="prev">Previous</button>
-      <button id="next">Next</button>
+  <h1>Living Awe</h1>
+  <div id="slideshow">
+    <button id="prev">Previous</button>
+    <div id="reflection">
+      <h2 id="topic"></h2>
+      <img id="image" alt="" />
+      <p id="text"></p>
     </div>
-    <div id="mindmap">
-      <h2>Mindmap</h2>
-      <svg id="mindmapCanvas" width="800" height="600"></svg>
-    </div>
+    <button id="next">Next</button>
   </div>
+  <div id="mindmap"></div>
   <script src="script.js"></script>
 </body>
 </html>
-

@@ -1,22 +1,21 @@
 let reflections = [];
 let currentIndex = 0;
 
-// Load CSV
-fetch("reflections.csv")
-  .then(response => response.text())
-  .then(data => {
-    reflections = parseCSV(data);
-    showReflection(0);
-    drawMindmap();
-  });
+async function loadCSV() {
+  const response = await fetch('reflections.csv');
+  const text = await response.text();
+  reflections = parseCSV(text);
+  showReflection(currentIndex);
+  renderMindmap();
+}
 
-function parseCSV(data) {
-  const lines = data.trim().split("\n");
-  const headers = lines[0].split(",");
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',');
   return lines.slice(1).map(line => {
-    const values = line.split(",");
+    const values = line.split(',');
     let obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim());
+    headers.forEach((h, i) => obj[h.trim()] = values[i] ? values[i].trim() : '');
     return obj;
   });
 }
@@ -24,77 +23,69 @@ function parseCSV(data) {
 function showReflection(index) {
   if (!reflections.length) return;
   const r = reflections[index];
-  const div = document.getElementById("reflection");
-  div.innerHTML = `
-    <h3>${r.title || "Untitled"}</h3>
-    <p><em>${r.topic}</em> • ${r.date || ""}</p>
-    <p>${r.snippet}</p>
-    ${r.image ? `<img src="images/${r.image}" alt="">` : ""}
-    ${r.link ? `<p><a href="${r.link}" target="_blank">More</a></p>` : ""}
-  `;
-  currentIndex = index;
+  document.getElementById('topic').textContent = r.Topic;
+  document.getElementById('text').textContent = r.Reflection;
+  const img = document.getElementById('image');
+  if (r.Image) { img.src = r.Image; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
 }
 
-document.getElementById("prev").addEventListener("click", () => {
-  const newIndex = (currentIndex - 1 + reflections.length) % reflections.length;
-  showReflection(newIndex);
-});
+document.getElementById('prev').onclick = () => {
+  currentIndex = (currentIndex - 1 + reflections.length) % reflections.length;
+  showReflection(currentIndex);
+};
+document.getElementById('next').onclick = () => {
+  currentIndex = (currentIndex + 1) % reflections.length;
+  showReflection(currentIndex);
+};
 
-document.getElementById("next").addEventListener("click", () => {
-  const newIndex = (currentIndex + 1) % reflections.length;
-  showReflection(newIndex);
-});
-
-// Mindmap (basic with Awe at center)
-function drawMindmap() {
-  const svg = document.getElementById("mindmapCanvas");
-  const centerX = 400, centerY = 300;
-  const radius = 200;
-
-  // Draw center node
-  const aweCircle = document.createElementNS("http://www.w3.org/2000/svg","circle");
-  aweCircle.setAttribute("cx", centerX);
-  aweCircle.setAttribute("cy", centerY);
-  aweCircle.setAttribute("r", 40);
-  aweCircle.setAttribute("fill", "#4a90e2");
-  svg.appendChild(aweCircle);
-
-  const aweText = document.createElementNS("http://www.w3.org/2000/svg","text");
-  aweText.setAttribute("x", centerX);
-  aweText.setAttribute("y", centerY + 5);
-  aweText.setAttribute("text-anchor", "middle");
-  aweText.setAttribute("fill", "white");
-  aweText.textContent = "Awe";
-  svg.appendChild(aweText);
-
-  // Draw topic nodes around circle
-  const topics = [...new Set(reflections.map(r => r.topic))];
-  topics.forEach((topic, i) => {
-    const angle = (i / topics.length) * 2 * Math.PI;
-    const x = centerX + radius * Math.cos(angle);
-    const y = centerY + radius * Math.sin(angle);
-
-    const node = document.createElementNS("http://www.w3.org/2000/svg","circle");
-    node.setAttribute("cx", x);
-    node.setAttribute("cy", y);
-    node.setAttribute("r", 25);
-    node.setAttribute("fill", "#f39c12");
-    svg.appendChild(node);
-
-    const label = document.createElementNS("http://www.w3.org/2000/svg","text");
-    label.setAttribute("x", x);
-    label.setAttribute("y", y + 5);
-    label.setAttribute("text-anchor", "middle");
-    label.textContent = topic;
-    svg.appendChild(label);
-
-    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-    line.setAttribute("x1", centerX);
-    line.setAttribute("y1", centerY);
-    line.setAttribute("x2", x);
-    line.setAttribute("y2", y);
-    line.setAttribute("stroke", "#999");
-    svg.insertBefore(line, node); // so lines sit behind nodes
+function renderMindmap() {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const container = document.getElementById('mindmap');
+  container.innerHTML = '';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', 600);
+  svg.setAttribute('height', 600);
+  container.appendChild(svg);
+  const centerX = 300, centerY = 300;
+  function drawNode(topic, x, y, level) {
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', y);
+    circle.setAttribute('r', 30);
+    circle.setAttribute('fill', '#eee');
+    circle.setAttribute('stroke', '#333');
+    svg.appendChild(circle);
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', x);
+    text.setAttribute('y', y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.textContent = topic.Topic;
+    svg.appendChild(text);
+    const children = reflections.filter(r => r.ParentTopic === topic.Topic);
+    const angleStep = (2 * Math.PI) / children.length;
+    children.forEach((child, i) => {
+      const angle = i * angleStep;
+      const childX = x + Math.cos(angle) * (100 + level * 60);
+      const childY = y + Math.sin(angle) * (100 + level * 60);
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', x);
+      line.setAttribute('y1', y);
+      line.setAttribute('x2', childX);
+      line.setAttribute('y2', childY);
+      line.setAttribute('stroke', '#666');
+      svg.appendChild(line);
+      drawNode(child, childX, childY, level + 1);
+    });
+  }
+  const roots = reflections.filter(r => !r.ParentTopic);
+  roots.forEach((root, i) => {
+    const angle = i * ((2 * Math.PI) / roots.length);
+    const x = centerX + Math.cos(angle) * 150;
+    const y = centerY + Math.sin(angle) * 150;
+    drawNode(root, x, y, 1);
   });
 }
 
+loadCSV();
